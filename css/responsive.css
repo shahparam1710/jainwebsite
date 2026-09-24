@@ -1,0 +1,36 @@
+/* ==========================================================================
+   Responsive breakpoints
+   Mobile-first base lives in style.css; this file layers on larger screens.
+   ========================================================================== */
+
+/* Small tablets and up */
+@media (min-width: 640px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+  .value-row { grid-template-columns: repeat(3, 1fr); }
+  .topic-grid { grid-template-columns: repeat(2, 1fr); }
+  .prayer-row { grid-template-columns: repeat(2, 1fr); }
+  .brand-tagline { display: inline; }
+}
+
+/* Tablets / small laptops: switch to top nav, drop bottom nav */
+@media (min-width: 860px) {
+  .desktop-nav { display: flex; }
+  .mobile-nav { display: none; }
+  main#app { padding-bottom: var(--space-7); }
+
+  .hero { display: flex; flex-direction: column; align-items: flex-start; }
+  .topic-grid { grid-template-columns: repeat(3, 1fr); }
+  .prayer-row { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Desktop */
+@media (min-width: 1100px) {
+  .card-grid { grid-template-columns: repeat(3, 1fr); }
+  .reader-controls { flex-direction: row; align-items: center; justify-content: space-between; }
+}
+
+/* Print (e.g. printing a prayer page) */
+@media print {
+  .site-header, .mobile-nav, .site-footer, .reader-toolbar, .audio-strip { display: none; }
+  body { background: #fff; color: #000; }
+}
