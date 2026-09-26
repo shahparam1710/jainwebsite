@@ -1,4 +1,5 @@
 import { prayers, getPrayerById } from "../data/prayers.js";
+import { archanaIndex, archanaSourceInfo, totalArchanaItems, transcribedArchanaItems } from "../data/archana-index.js";
 import { tirthankaras, tirthankaraNote } from "../data/tirthankaras.js";
 import { values, threeJewels, learnTopics } from "../data/values.js";
 import { glossary } from "../data/glossary.js";
@@ -25,7 +26,7 @@ const navLinks = document.querySelectorAll("[data-nav-link]");
 
 const routes = {
   "/": renderHome,
-  "/archana": () => renderPrayer("navkar-mantra"),
+  "/archana": renderArchanaHub,
   "/prayers": renderPrayerLibrary,
   "/prayer": (id) => renderPrayer(id),
   "/learn": renderLearn,
@@ -115,7 +116,7 @@ function renderHome() {
     <section class="card-grid">
       <a class="feature-card" href="#/archana">
         <h2>Jinendra Archana</h2>
-        <p>Follow the archana with Hindi text and easy English pronunciation.</p>
+        <p>A 143-piece prayer book, with Hindi text and easy English pronunciation alongside it.</p>
       </a>
       <a class="feature-card" href="#/prayer/${featured.id}">
         <h2>Today's prayer</h2>
@@ -183,11 +184,81 @@ function prayerCard(p) {
 }
 
 /* ------------------------------------------------------------------ */
+/* Jinendra Archana hub — the central feature                          */
+/* ------------------------------------------------------------------ */
+
+function renderArchanaHub() {
+  const featured = ["darshan-path", "jinendra-vandana", "dev-stuti-budhajan", "darshan-stuti-daulatram", "navkar-mantra"]
+    .map((id) => getPrayerById(id))
+    .filter(Boolean);
+  const done = transcribedArchanaItems();
+  const total = totalArchanaItems();
+
+  appEl.innerHTML = `
+    ${pageHeader("Jinendra Archana", "A digital reading of the Jinendra Archana prayer book.")}
+
+    <div class="notice notice--info">
+      This section is built from a 143-piece prayer book, <em>${escapeHtml(archanaSourceInfo.title)}</em>
+      (${escapeHtml(archanaSourceInfo.publisher)}, ${escapeHtml(archanaSourceInfo.edition)}).
+      ${done} of ${total} pieces have been fully transcribed and checked so far — start with one of these,
+      or browse the full contents below to see what's still on the way.
+    </div>
+
+    <div class="prayer-grid">
+      ${featured.map((p) => prayerCard(p)).join("")}
+    </div>
+
+    <section class="section-block">
+      <h2 class="section-title">Full contents of the book</h2>
+      <p class="muted">Every item below is exactly as printed in the source book's table of contents. Items in colour are ready to read; the rest show their page number in the book so they can be checked and added later.</p>
+      <div class="archana-toc">
+        ${archanaIndex
+          .map(
+            (section) => `
+          <details class="archana-toc-section">
+            <summary>${escapeHtml(sectionLabel(section.section))} <span class="muted">(${section.items.length})</span></summary>
+            <ol class="archana-toc-list">
+              ${section.items
+                .map(
+                  (item) => `
+                <li class="${item.prayerId ? "is-ready" : ""}">
+                  ${
+                    item.prayerId
+                      ? `<a href="#/prayer/${item.prayerId}">${escapeHtml(item.title)}</a>`
+                      : `<span>${escapeHtml(item.title)}</span>`
+                  }
+                  <span class="archana-toc-meta">${item.author && item.author !== "—" ? escapeHtml(item.author) + " · " : ""}pg ${item.sourcePage}</span>
+                </li>`
+                )
+                .join("")}
+            </ol>
+          </details>`
+          )
+          .join("")}
+      </div>
+    </section>
+  `;
+}
+
+function sectionLabel(key) {
+  const labels = {
+    "Stavan Khand": "Stavan Khand — short hymns",
+    "Pujan Khand": "Pujan Khand — ritual pujas",
+    "Adhyatmik Path evam Bhavna Khand": "Adhyatmik Path & Bhavna Khand — reflections",
+    "Bhakti Khand — Dev Bhakti": "Bhakti Khand — Dev Bhakti",
+    "Bhakti Khand — Shastra Bhakti": "Bhakti Khand — Shastra Bhakti",
+    "Bhakti Khand — Guru Bhakti": "Bhakti Khand — Guru Bhakti",
+    "Bhakti Khand — Vividh (Miscellaneous)": "Bhakti Khand — Vividh (miscellaneous)",
+  };
+  return labels[key] || key;
+}
+
+/* ------------------------------------------------------------------ */
 /* Prayer library + reader                                             */
 /* ------------------------------------------------------------------ */
 
 function renderPrayerLibrary() {
-  const categories = ["all", "archana", "mantra", "stavan", "aarti", "other"];
+  const categories = ["all", "mantra", "stavan", "aarti", "other"];
   let activeCategory = "all";
   let query = "";
 
@@ -203,6 +274,7 @@ function renderPrayerLibrary() {
     const results = list();
     appEl.innerHTML = `
       ${pageHeader("Prayers", "Search the full prayer library.")}
+      <p class="muted">Looking for the full Jinendra Archana prayer book? <a href="#/archana">Browse its full contents here</a>.</p>
       <div class="library-controls">
         <input type="search" id="prayer-search" placeholder="Search prayers…" aria-label="Search prayers" value="${escapeHtml(
           query
@@ -549,6 +621,11 @@ function renderAbout() {
       <p>Many children and young people grow up understanding English more comfortably than Hindi. They may recognise the prayers by ear but struggle to read the original Devanagari text.</p>
       <p>Jain Aradhana helps bridge that gap by placing three things side by side for every verified prayer: the original Hindi, an easy English pronunciation, and a plain-English meaning.</p>
       <p>This site is not a replacement for traditional prayer books, pathshala teachers, or mandir guidance — it is a companion meant to help people participate and learn alongside them.</p>
+      <p>The Jinendra Archana section is built from a printed prayer book of the same name — <em>${escapeHtml(
+        archanaSourceInfo.title
+      )}</em>, compiled by ${escapeHtml(archanaSourceInfo.publisher)} (${escapeHtml(
+    archanaSourceInfo.edition
+  )}), originally sourced by that Trust. ${escapeHtml(archanaSourceInfo.acknowledgement)}</p>
       <div class="notice notice--info">This is an educational/community resource. Religious texts should be checked against trusted Jain sources before publication. See the README for the content verification process.</div>
     </div>
   `;

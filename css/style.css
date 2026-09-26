@@ -223,6 +223,14 @@ main#app {
   padding: var(--space-5) var(--space-4) calc(var(--space-7) + 64px);
 }
 
+@keyframes gentle-fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+main#app > * {
+  animation: gentle-fade-in 220ms ease;
+}
+
 .site-footer {
   border-top: 1px solid var(--color-border);
   padding: var(--space-6) var(--space-4);
@@ -392,7 +400,9 @@ main#app {
   padding: var(--space-5);
   text-decoration: none;
   color: var(--color-ink);
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
 }
+.feature-card:hover { border-color: var(--color-primary); transform: translateY(-2px); }
 .feature-card h2 { font-size: 1.15rem; }
 .feature-card p { color: var(--color-muted); margin: 0; }
 
@@ -417,7 +427,9 @@ main#app {
   padding: var(--space-4);
   text-decoration: none;
   color: var(--color-ink);
+  transition: border-color var(--motion-fast), transform var(--motion-fast);
 }
+.prayer-card:hover { border-color: var(--color-primary); transform: translateY(-2px); }
 .prayer-card-top {
   display: flex;
   justify-content: space-between;
@@ -530,6 +542,64 @@ main#app {
   gap: var(--space-2);
 }
 
+.jump-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+}
+.jump-chip {
+  text-decoration: none;
+  font-size: 0.8rem;
+  color: var(--color-primary);
+  background: var(--color-surface-2);
+  border-radius: 999px;
+  padding: var(--space-1) var(--space-3);
+  scroll-margin-top: calc(64px + env(safe-area-inset-top, 0px));
+}
+
+.verse-sections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.verse-section {
+  scroll-margin-top: calc(64px + env(safe-area-inset-top, 0px));
+}
+.verse-section-title {
+  font-size: 1.05rem;
+  color: var(--color-primary);
+  margin-bottom: var(--space-3);
+  padding-bottom: var(--space-2);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.about-panel {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-5);
+  font-size: 0.92rem;
+}
+.about-panel p { margin-bottom: var(--space-2); }
+.about-panel p:last-child { margin-bottom: 0; }
+.about-source, .about-sect { color: var(--color-muted); }
+.about-note {
+  font-style: italic;
+  color: var(--color-muted);
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-2);
+}
+
+.verse-instruction {
+  text-align: center;
+  font-style: italic;
+  color: var(--color-muted);
+  margin: var(--space-2) 0;
+}
+
 .verses {
   display: flex;
   flex-direction: column;
@@ -537,41 +607,53 @@ main#app {
 }
 
 .verse-card {
-  display: flex;
-  gap: var(--space-3);
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   padding: var(--space-4);
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+.verse-card--mantra {
+  background: var(--color-surface-2);
+  border-style: dashed;
 }
 .verse-card--empty {
   border-style: dashed;
   color: var(--color-muted);
-}
-.verse-number {
-  flex: none;
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--color-surface-2);
-  color: var(--color-primary);
-  font-size: 0.75rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 .verse-body { flex: 1; }
 .verse-hindi {
   font-family: var(--font-devanagari);
   font-size: calc(1.5rem * var(--scale));
   margin-bottom: var(--space-2);
+  white-space: pre-line;
 }
 .verse-pron, .verse-meaning {
   font-size: 0.98rem;
   color: var(--color-ink);
   margin-bottom: var(--space-1);
+  white-space: pre-line;
 }
+.verse-card--couplet {
+  border-style: dashed;
+  background: var(--color-surface-2);
+}
+.verse-couplet-label {
+  font-size: 0.72rem;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: var(--space-2) !important;
+}
+.about-panel {
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  margin-bottom: var(--space-4);
+  font-size: 0.92rem;
+}
+.about-panel p:last-child { margin-bottom: 0; }
+.about-source, .about-sect { color: var(--color-muted); }
 .verse-label {
   display: block;
   font-size: 0.72rem;
@@ -587,6 +669,9 @@ main#app {
 .reader--focus .verse-hindi { font-size: calc(1.9rem * var(--scale)); }
 .reader--focus .verse-pron, .reader--focus .verse-meaning { font-size: calc(1.15rem * var(--scale)); }
 .reader--focus .verse-card { padding: var(--space-5); }
+.reader--focus .jump-nav { display: none; }
+.reader--focus .verse-section-title { font-size: calc(1.2rem * var(--scale)); }
+.reader--focus .verse-sections { gap: var(--space-7); }
 
 /* Learning mode */
 .learning-panel { max-width: 60ch; }
@@ -663,7 +748,9 @@ input[type="search"] {
   padding: var(--space-4);
   text-decoration: none;
   color: var(--color-ink);
+  transition: border-color var(--motion-fast);
 }
+.topic-card:hover { border-color: var(--color-primary); }
 .topic-card p, .value-card p { color: var(--color-muted); }
 .value-tagline { color: var(--color-primary) !important; font-weight: 600; margin-bottom: var(--space-2) !important; }
 .value-card details { margin-top: var(--space-2); }
@@ -697,6 +784,41 @@ input[type="search"] {
 }
 .tirthankara-card h3 { font-size: 0.95rem; margin-bottom: 2px; }
 .tirthankara-card p { font-size: 0.8rem; margin: 0; }
+
+.archana-toc { display: flex; flex-direction: column; gap: var(--space-2); }
+.archana-toc-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-4);
+}
+.archana-toc-section summary { cursor: pointer; font-weight: 600; }
+.archana-toc-list {
+  list-style: none;
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.archana-toc-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-size: 0.9rem;
+}
+.archana-toc-list li:first-child { border-top: none; }
+.archana-toc-list li.is-ready { color: var(--color-ink); }
+.archana-toc-list li a {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+.archana-toc-meta { flex: none; font-size: 0.78rem; color: var(--color-muted); white-space: nowrap; }
 
 .glossary-list { display: flex; flex-direction: column; gap: var(--space-2); }
 .glossary-item {

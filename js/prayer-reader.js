@@ -4,6 +4,11 @@
  * display modes (Hindi / Pronunciation / Both / +Meaning), adjustable
  * text size, a dedicated "Mandir Reading Mode", and a lightweight
  * step-by-step Learning Mode.
+ *
+ * Supports two content shapes on the prayer object:
+ *   - prayer.lines    -> a flat list of verse lines (short prayers)
+ *   - prayer.sections -> a list of {title, lines} groups (longer pujas),
+ *     each rendered under its own heading with a jump-to-section nav.
  */
 
 import { getSettings, saveSettings, getFavourites, toggleFavourite, addRecentlyUsed } from "./storage.js";
@@ -17,6 +22,14 @@ const CATEGORY_LABELS = {
   other: "Other",
 };
 
+function slugify(text, index) {
+  const base = String(text || "section")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+  return `${base || "section"}-${index}`;
+}
+
 export function renderPrayerReader(prayer, container, { onNavigate } = {}) {
   addRecentlyUsed(prayer.id);
   const settings = getSettings();
@@ -24,49 +37,97 @@ export function renderPrayerReader(prayer, container, { onNavigate } = {}) {
   let pronunciationMode = settings.pronunciation; // simple | detailed
   let learningMode = false;
   let learningStep = 0;
+  let showAbout = false;
+
+  // Normalise content into a single `sections` list internally, whether
+  // the prayer supplied `lines` (flat) or `sections` (grouped).
+  const sections = prayer.sections && prayer.sections.length ? prayer.sections : [{ title: null, lines: prayer.lines }];
 
   function isFavourite() {
     return getFavourites().includes(prayer.id);
   }
 
-  function lineHtml(line, index) {
+  function lineHtml(line) {
     const showHindi = displayMode === "hindi" || displayMode === "both" || displayMode === "meaning";
     const showPron = displayMode === "pronunciation" || displayMode === "both" || displayMode === "meaning";
     const showMeaning = displayMode === "meaning";
-    const pron =
-      pronunciationMode === "detailed" ? line.transliterationDetailed : line.transliterationSimple;
+    const pron = pronunciationMode === "detailed" ? line.transliterationDetailed : line.transliterationSimple;
 
-    if (!prayer.verified) {
-      return `
-        <div class="verse-card verse-card--empty">
-          <p class="verse-empty-note">Verified text for this line has not been added yet.</p>
-        </div>`;
+    if (line.instruction) {
+      return `<p class="verse-instruction">${escapeHtml(line.meaning || line.hindi)}</p>`;
     }
 
     return `
-      <div class="verse-card" data-line="${index}">
-        <span class="verse-number">${index + 1}</span>
-        <div class="verse-body">
-          ${showHindi ? `<p class="verse-hindi" lang="hi">${escapeHtml(line.hindi)}</p>` : ""}
+      <div class="verse-card ${line.isMantra ? "verse-card--mantra" : ""}">
+        ${showHindi ? `<p class="verse-hindi" lang="hi">${escapeHtml(line.hindi)}</p>` : ""}
+        ${
+          showPron
+            ? `<p class="verse-pron"><span class="verse-label">How to say it</span>${escapeHtml(pron)}</p>`
+            : ""
+        }
+        ${
+          showMeaning
+            ? `<p class="verse-meaning"><span class="verse-label">Meaning</span>${escapeHtml(
+                line.meaning || "Meaning to be verified."
+              )}</p>`
+            : ""
+        }
+      </div>`;
+  }
+
+  function coupletHtml(couplet) {
+    if (!couplet) return "";
+    const showHindi = displayMode === "hindi" || displayMode === "both" || displayMode === "meaning";
+    const showPron = displayMode === "pronunciation" || displayMode === "both" || displayMode === "meaning";
+    const showMeaning = displayMode === "meaning";
+    const pron = pronunciationMode === "detailed" ? couplet.transliterationDetailed : couplet.transliterationSimple;
+    return `
+      <div class="verse-card verse-card--couplet">
+        ${couplet.label ? `<p class="verse-couplet-label">${escapeHtml(couplet.label)}</p>` : ""}
+        ${showHindi ? `<p class="verse-hindi" lang="hi">${escapeHtml(couplet.hindi)}</p>` : ""}
+        ${
+          showPron
+            ? `<p class="verse-pron"><span class="verse-label">How to say it</span>${escapeHtml(pron)}</p>`
+            : ""
+        }
+        ${
+          showMeaning
+            ? `<p class="verse-meaning"><span class="verse-label">Meaning</span>${escapeHtml(
+                couplet.meaning || "Meaning to be verified."
+              )}</p>`
+            : ""
+        }
+      </div>`;
+  }
+
+  function sectionHtml(section, index) {
+    const id = slugify(section.title, index);
+    return `
+      <section class="verse-section" id="${id}">
+        ${section.title ? `<h2 class="verse-section-title">${escapeHtml(section.title)}</h2>` : ""}
+        <div class="verses">
           ${
-            showPron
-              ? `<p class="verse-pron"><span class="verse-label">How to say it</span>${escapeHtml(pron)}</p>`
-              : ""
-          }
-          ${
-            showMeaning
-              ? `<p class="verse-meaning"><span class="verse-label">Meaning</span>${escapeHtml(
-                  line.meaning || "Meaning not yet available."
-                )}</p>`
-              : ""
+            prayer.verified
+              ? section.lines.map((l) => lineHtml(l)).join("")
+              : `<div class="verse-card verse-card--empty"><p class="verse-empty-note">Verified text for this section has not been added yet.</p></div>`
           }
         </div>
-      </div>`;
+      </section>`;
+  }
+
+  function jumpNavHtml() {
+    if (sections.length < 2) return "";
+    return `
+      <nav class="jump-nav" aria-label="Jump to section">
+        ${sections
+          .map((s, i) => `<a class="jump-chip" href="#${slugify(s.title, i)}">${escapeHtml(s.title || `Part ${i + 1}`)}</a>`)
+          .join("")}
+      </nav>`;
   }
 
   function learningStepsHtml() {
     const steps = ["Read Hindi", "Read pronunciation", "Try without pronunciation", "Complete prayer"];
-    const line = prayer.lines[0];
+    const line = sections[0].lines[0];
     const pct = Math.round(((learningStep + 1) / steps.length) * 100);
     let body = "";
     if (learningStep === 0) {
@@ -95,6 +156,29 @@ export function renderPrayerReader(prayer, container, { onNavigate } = {}) {
             learningStep === steps.length - 1 ? "Finish" : "Next"
           }</button>
         </div>
+      </div>`;
+  }
+
+  function hasSourceText() {
+    return Boolean(prayer.source && typeof prayer.source === "object" && prayer.source.text);
+  }
+
+  function aboutHtml() {
+    if (!showAbout) return "";
+    return `
+      <div class="about-panel">
+        ${prayer.about ? `<p>${escapeHtml(prayer.about)}</p>` : ""}
+        ${
+          hasSourceText()
+            ? `<p class="about-source"><span class="verse-label">Source</span>${escapeHtml(prayer.source.text)}</p>`
+            : ""
+        }
+        ${prayer.sect ? `<p class="about-sect"><span class="verse-label">Tradition</span>${escapeHtml(prayer.sect)}</p>` : ""}
+        ${
+          prayer.meaningNote && displayMode === "meaning"
+            ? `<p class="about-note">${escapeHtml(prayer.meaningNote)}</p>`
+            : ""
+        }
       </div>`;
   }
 
@@ -137,17 +221,19 @@ export function renderPrayerReader(prayer, container, { onNavigate } = {}) {
             }</button>
             <button class="chip" id="reader-learn-toggle">${learningMode ? "Exit learning mode" : "Learn this prayer"}</button>
             <button class="chip" id="reader-focus-toggle">${settings.readingMode ? "Exit reading mode" : "Reading mode"}</button>
+            ${prayer.about || hasSourceText() ? `<button class="chip" id="reader-about-toggle">${showAbout ? "Hide info" : "About this prayer"}</button>` : ""}
           </div>
         </div>
+
+        ${aboutHtml()}
 
         ${
           learningMode
             ? learningStepsHtml()
-            : `<div class="verses">${
-                prayer.verified
-                  ? prayer.lines.map((l, i) => lineHtml(l, i)).join("")
-                  : lineHtml(prayer.lines[0], 0)
-              }</div>
+            : `${jumpNavHtml()}
+               ${prayer.verified ? coupletHtml(prayer.intro) : ""}
+               <div class="verse-sections">${sections.map((s, i) => sectionHtml(s, i)).join("")}</div>
+               ${prayer.verified ? coupletHtml(prayer.outro) : ""}
                <div class="audio-strip">
                  ${
                    prayer.audio
@@ -192,6 +278,12 @@ export function renderPrayerReader(prayer, container, { onNavigate } = {}) {
         settings.readingMode = !settings.readingMode;
         saveSettings(settings);
         document.documentElement.setAttribute("data-reading-mode", settings.readingMode ? "true" : "false");
+        render();
+      });
+    const aboutBtn = container.querySelector("#reader-about-toggle");
+    if (aboutBtn)
+      aboutBtn.addEventListener("click", () => {
+        showAbout = !showAbout;
         render();
       });
     const learnNext = container.querySelector("#learn-next");

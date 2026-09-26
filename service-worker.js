@@ -19,6 +19,7 @@ const APP_SHELL = [
   "./js/search.js",
   "./js/utils.js",
   "./data/prayers.js",
+  "./data/archana-index.js",
   "./data/tirthankaras.js",
   "./data/values.js",
   "./data/festivals.js",
